@@ -1,0 +1,172 @@
+
+<html>
+<head>
+
+    <meta charset="utf-8">
+    <meta name="description" content="WebRTC code samples">
+    <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
+    <meta itemprop="description" content="Client-side WebRTC code samples">
+    <meta itemprop="image" content="../../../images/webrtc-icon-192x192.png">
+    <meta itemprop="name" content="WebRTC code samples">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta id="theme-color" name="theme-color" content="#ffffff">
+
+    <base target="_blank">
+
+    <title>Peer connection - upgrade</title>
+
+    <link rel="icon" sizes="192x192" href="../../../images/webrtc-icon-192x192.png">
+    <link href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="../../../css/main.css"/>
+    <link rel="stylesheet" href="css/main.css"/>
+
+</head>
+
+<body>
+
+<div id="container">
+    <h1>Real time coding</h1>
+
+    <video id="localVideo" playsinline autoplay></video>
+    <video id="remoteVideo" playsinline autoplay></video>
+
+    <div>
+        <button id="startButton">Start</button>
+        <button id="callButton">Call</button>
+        <button id="upgradeButton">Turn on video</button>
+        <button id="hangupButton">Hang Up</button>
+    </div>
+
+</div>
+
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script src="js/main.js" async></script>
+
+<script src="../../../js/lib/ga.js"></script>
+<h4>Start typing your Code</h4>
+    <textarea id="source" style="width: calc(50% - 8px); height: 50%; resize: vertical;">
+</textarea>
+
+    <h4>Language</h4>
+    <select id="lang">
+        <option>Bash</option>
+        <option>C#</option>
+        <option>C++</option>
+        <option>C</option>
+        <option>Java</option>
+        <option selected>Python</option>
+        <option>Ruby</option>
+    </select>
+
+    <h4>Input</h4>
+    <textarea id="input" style="width: calc(50% - 8px); height: 10%; resize: vertical;"></textarea>
+
+    </br></br>
+    <button id="run" onclick="run()">Run (Ctrl + Enter)</button>
+
+        <textarea readonly id="output" style="width: 50%; height: 100%; position: fixed; top: 0; right: 0; resize: none;"></textarea>
+
+    <script type="text/javascript">
+        API_KEY = "a4faf92591msh34d71fce9ac6727p10b53cjsn5ee2e3ca0a65";
+
+        var language_to_id = {
+            "Bash": 46,
+            "C": 50,
+            "C#": 51,
+            "C++": 54,
+            "Java": 62,
+            "Python": 71,
+            "Ruby": 72
+        };
+
+        function encode(str) {
+            return btoa(unescape(encodeURIComponent(str || "")));
+        }
+
+        function decode(bytes) {
+ var escaped = escape(atob(bytes || ""));
+            try {
+                return decodeURIComponent(escaped);
+            } catch {
+                return unescape(escaped);
+            }
+        }
+
+        function errorHandler(jqXHR, textStatus, errorThrown) {
+            $("#output").val(`${JSON.stringify(jqXHR, null, 4)}`);
+            $("#run").prop("disabled", false);
+        }
+
+        function check(token) {
+            $("#output").val($("#output").val() + "\nChecking submission status...");
+            $.ajax({
+                url: `https://judge0.p.rapidapi.com/submissions/${token}?base64_encoded=true`,
+                type: "GET",
+                headers: {
+                    "x-rapidapi-host": "judge0.p.rapidapi.com",
+                        "x-rapidapi-key": API_KEY
+                },
+                success: function (data, textStatus, jqXHR) {
+                    if ([1, 2].includes(data["status"]["id"])) {
+                        $("#output").val($("#output").val() + "\nStatus: " + data["status"]["description"]);
+                        setTimeout(function() { check(token) }, 1000);
+ }
+                    else {
+                        var output = [decode(data["compile_output"]), decode(data["stdout"])].join("\n").trim();
+                        $("#output").val(output);
+                        $("#run").prop("disabled", false);
+                    }
+                },
+                error: errorHandler
+            });
+        }
+
+        function run() {
+            $("#run").prop("disabled", true);
+            $("#output").val("Creating submission...");
+            $.ajax({
+                url: "https://judge0.p.rapidapi.com/submissions?base64_encoded=true",
+                type: "POST",
+                contentType: "application/json",
+                headers: {
+                    "x-rapidapi-host": "judge0.p.rapidapi.com",
+                        "x-rapidapi-key": API_KEY
+                },
+                data: JSON.stringify({
+                    "language_id": language_to_id[$("#lang").val()],
+                    "source_code": encode($("#source").val()),
+                    "stdin": encode($("#input").val()),
+"redirect_stderr_to_stdout": true
+                }),
+                success: function(data, textStatus, jqXHR) {
+                    $("#output").val($("#output").val() + "\nSubmission created.");
+                    setTimeout(function() { check(data["token"]) }, 1000);
+                },
+                error: errorHandler
+            });
+        }
+
+        $("body").keydown(function (e) {
+            if (e.ctrlKey && e.keyCode == 13) {
+                run();
+            }
+        });
+
+        $("textarea").keydown(function (e) {
+            if (e.keyCode == 9) {
+                e.preventDefault();
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+
+                var append = "    ";
+                $(this).val($(this).val().substring(0, start) + append + $(this).val().substring(end));
+
+                this.selectionStart = this.selectionEnd = start + append.length;
+     this.selectionStart = this.selectionEnd = start + append.length;
+            }
+        });
+
+        $("#source").focus();
+    </script>
+</body>
+</html>
